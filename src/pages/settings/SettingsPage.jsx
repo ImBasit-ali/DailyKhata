@@ -42,6 +42,7 @@ export default function SettingsPage() {
   });
   const [printPageSize, setPrintPageSize] = useState('A4');
   const [printTextSize, setPrintTextSize] = useState('medium');
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
   useEffect(() => {
     if (activeCompany?.id && !selectedCompanyId) {
@@ -625,6 +626,61 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      
+      {/* Legal & Policies */}
+      <div className="card p-4 border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-2 pb-3 border-b border-slate-100 mb-3">
+          <InformationCircleIcon className="h-4 w-4 text-slate-500" />
+          <h2 className="text-sm font-bold text-slate-900">Legal & Policies</h2>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-500">View how we handle and protect your data.</p>
+          </div>
+          <button
+            onClick={() => setShowPrivacyPolicy(true)}
+            className="btn-secondary text-xs self-start sm:self-auto"
+          >
+            Privacy Policy
+          </button>
+        </div>
+      </div>
+
+      {showPrivacyPolicy && (
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Privacy Policy</h2>
+              <button onClick={() => setShowPrivacyPolicy(false)} className="text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4">
+              <p><strong>Last Updated:</strong> {new Date().toLocaleDateString()}</p>
+              
+              <h3 className="font-bold text-slate-800 text-base">1. Information We Collect</h3>
+              <p>DailyKhata collects information you provide directly to us when you register for an account, create companies, and input business transactions (such as sales, expenses, and fuel stock data). This includes your email address, company details, and financial data associated with your business.</p>
+              
+              <h3 className="font-bold text-slate-800 text-base">2. How We Use Your Information</h3>
+              <p>We use the information we collect to provide, maintain, and improve our services, to calculate business analytics, and to securely synchronize your business settings and data across your devices. Your data is strictly used for the functionality of the DailyKhata dashboard.</p>
+              
+              <h3 className="font-bold text-slate-800 text-base">3. Data Security & Sync</h3>
+              <p>Your data is stored securely using cloud database infrastructure (Supabase). We employ industry-standard security measures to protect your information. Your local settings and data are actively synced to your personal cloud profile so that they are backed up and accessible across your devices.</p>
+              
+              <h3 className="font-bold text-slate-800 text-base">4. Data Deletion</h3>
+              <p>You have full control over your data. You may wipe all database records using the settings panel or permanently delete your account. Deleting your account will immediately and irreversibly remove all your personal data, transaction history, and synced settings from our active servers.</p>
+              
+              <h3 className="font-bold text-slate-800 text-base">5. Changes to This Policy</h3>
+              <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.</p>
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end">
+              <button onClick={() => setShowPrivacyPolicy(false)} className="btn-primary px-6">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="text-center text-[10px] text-slate-400 pt-2">
         DailyKhata Business Management Dashboard v1.3.0
