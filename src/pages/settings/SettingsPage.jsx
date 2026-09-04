@@ -56,7 +56,7 @@ export default function SettingsPage() {
   const loadPrintSettings = () => {
     if (!targetCompany) return;
     try {
-      const raw = localStorage.getItem(`vyapar_company_settings_${targetCompany.id}`);
+      const raw = localStorage.getItem(`dailykhata_company_settings_${targetCompany.id}`);
       if (raw) {
         const d = JSON.parse(raw);
         setPrinterType(d.printerType || 'regular');
@@ -175,7 +175,8 @@ export default function SettingsPage() {
         printTextSize,
         details: companyDetails
       };
-      localStorage.setItem(`vyapar_company_settings_${targetCompany.id}`, JSON.stringify(data));
+      localStorage.setItem(`dailykhata_company_settings_${targetCompany.id}`, JSON.stringify(data));
+      window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
       toast.success('Print settings and company details saved successfully!');
     } catch (err) {
       toast.error('Failed to save print settings');
@@ -598,17 +599,35 @@ export default function SettingsPage() {
             <p className="text-xs text-slate-500">Logged In Account</p>
             <p className="text-xs font-bold text-slate-800 mt-0.5">{user?.email}</p>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="btn-danger text-xs self-start sm:self-auto"
-          >
-            Sign Out
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                if(window.confirm('Are you absolutely sure you want to permanently delete your account and all associated data? This action cannot be undone.')){
+                   try {
+                     const { deleteUserAccount } = await import('@/utils/syncManager');
+                     await deleteUserAccount();
+                     await handleSignOut();
+                   } catch(e) {
+                     toast.error('Failed to delete account. Please try again or contact support.');
+                   }
+                }
+              }}
+              className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded-md text-xs font-semibold self-start sm:self-auto"
+            >
+              Delete Account
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="btn-danger text-xs self-start sm:self-auto"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="text-center text-[10px] text-slate-400 pt-2">
-        Vyapar Business Management Dashboard v1.3.0
+        DailyKhata Business Management Dashboard v1.3.0
       </div>
     </div>
   );

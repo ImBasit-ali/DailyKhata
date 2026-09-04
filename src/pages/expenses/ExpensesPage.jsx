@@ -275,7 +275,7 @@ export default function ExpensesPage() {
       companies.find((c) => c.id === expense.company_id) || activeCompany;
 
     setPreviewData({
-      companyName: comp?.name || 'Vyapar Business Services',
+      companyName: comp?.name || 'DailyKhata Business Services',
       companyPhone: comp?.phone || '',
       companyEmail: comp?.email || '',
       billTo: (expense.customer_code || getCompanyCode(comp?.name))
@@ -419,7 +419,7 @@ export default function ExpensesPage() {
       return;
     }
 
-    const compName = activeCompany?.name || 'Vyapar Business Services';
+    const compName = activeCompany?.name || 'DailyKhata Business Services';
     
     printWindow.document.write(`
       <html>

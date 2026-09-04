@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/formatters'
 import DataTable from '@/components/ui/DataTable'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { TrashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
+import toast from 'react-hot-toast'
 
 export default function RecycleBinPage() {
   const { activeCompany, companies, isAllCompanies } = useCompany()
@@ -28,8 +29,8 @@ export default function RecycleBinPage() {
 
   useEffect(() => {
     fetchRecords()
-    window.addEventListener('vyapar_data_changed', fetchRecords)
-    return () => window.removeEventListener('vyapar_data_changed', fetchRecords)
+    window.addEventListener('dailykhata_data_changed', fetchRecords)
+    return () => window.removeEventListener('dailykhata_data_changed', fetchRecords)
   }, [activeCompany, isAllCompanies])
 
   const handleSelectAll = (e) => {
@@ -48,26 +49,48 @@ export default function RecycleBinPage() {
   }
 
   const handleRestoreSelected = async () => {
-    for (const id of selectedIds) {
-      await restoreRecord(id)
+    if (selectedIds.size === 0) return;
+    const toastId = toast.loading('Restoring records...');
+    try {
+      for (const id of selectedIds) {
+        await restoreRecord(id)
+      }
+      toast.success('Records restored successfully', { id: toastId });
+      setSelectedIds(new Set())
+    } catch (e) {
+      toast.error('Failed to restore records', { id: toastId });
     }
-    setSelectedIds(new Set())
   }
 
   const handleDeleteSelected = async () => {
-    for (const id of selectedIds) {
-      const rec = records.find(r => r.id === id)
-      if (rec) {
-        await permanentlyDeleteRecord(id, rec._table)
+    if (selectedIds.size === 0) return;
+    if (!window.confirm('Are you sure you want to permanently delete selected records?')) return;
+    
+    const toastId = toast.loading('Deleting records permanently...');
+    try {
+      for (const id of selectedIds) {
+        const rec = records.find(r => r.id === id)
+        if (rec) {
+          await permanentlyDeleteRecord(id, rec._table)
+        }
       }
+      toast.success('Records permanently deleted', { id: toastId });
+      setSelectedIds(new Set())
+    } catch (e) {
+      toast.error('Failed to delete records', { id: toastId });
     }
-    setSelectedIds(new Set())
   }
 
   const handleEmptyTrash = async () => {
-    await emptyRecycleBin()
-    setIsConfirmingEmpty(false)
-    setSelectedIds(new Set())
+    const toastId = toast.loading('Emptying recycle bin...');
+    try {
+      await emptyRecycleBin()
+      setIsConfirmingEmpty(false)
+      setSelectedIds(new Set())
+      toast.success('Recycle bin emptied', { id: toastId });
+    } catch (e) {
+      toast.error('Failed to empty recycle bin', { id: toastId });
+    }
   }
 
   const columns = [

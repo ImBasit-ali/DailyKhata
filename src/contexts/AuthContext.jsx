@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { syncSupabaseToLocal, syncLocalToSupabase } from '@/utils/syncManager'
 
 const AuthContext = createContext(null)
 
@@ -13,6 +14,9 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.user) {
+        syncSupabaseToLocal(session.user)
+      }
       setLoading(false)
     })
 
@@ -20,10 +24,37 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      
+      if (_event === 'SIGNED_IN' && session?.user) {
+        syncSupabaseToLocal(session.user)
+      } else if (_event === 'SIGNED_OUT') {
+        // Clear user specific local storage keys
+        const keysToClear = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('dailykhata_')) {
+            keysToClear.push(key);
+          }
+        }
+        keysToClear.forEach(k => localStorage.removeItem(k));
+      }
+
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    const handleDataChange = () => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          syncLocalToSupabase(session.user);
+        }
+      });
+    };
+    window.addEventListener('dailykhata_data_changed', handleDataChange);
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('dailykhata_data_changed', handleDataChange);
+    }
   }, [])
 
   const signUp = async (emailOrObj, passwordArg, metadata = {}) => {

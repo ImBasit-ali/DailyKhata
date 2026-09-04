@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'vyapar_customer_categories';
+const STORAGE_KEY = 'dailykhata_customer_categories';
 
 /**
  * Get all stored customer categories

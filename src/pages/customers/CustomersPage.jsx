@@ -250,7 +250,7 @@ export default function CustomersPage() {
     const balance = Number(customer.balance || 0);
 
     setPreviewData({
-      companyName: comp?.name || 'Vyapar Business Services',
+      companyName: comp?.name || 'DailyKhata Business Services',
       companyPhone: comp?.phone || '',
       companyEmail: comp?.email || '',
       billTo: `${customer.name} (Code: ${customer.code})`,
@@ -367,7 +367,7 @@ export default function CustomersPage() {
       return;
     }
 
-    const compName = activeCompany?.name || 'Vyapar Business Services';
+    const compName = activeCompany?.name || 'DailyKhata Business Services';
     
     printWindow.document.write(`
       <html>

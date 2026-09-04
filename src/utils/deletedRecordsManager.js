@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 
-const DELETED_IDS_KEY = 'vyapar_permanently_deleted_ids';
-const RECYCLE_BIN_KEY = 'vyapar_recycle_bin_records';
+const DELETED_IDS_KEY = 'dailykhata_permanently_deleted_ids';
+const RECYCLE_BIN_KEY = 'dailykhata_recycle_bin_records';
 
 const INITIAL_EXCLUDED_IDS = [
   'a4fbf49d-5959-4607-9eb1-8ac4b297a36e',
@@ -69,7 +69,7 @@ export async function deleteRecordEntirely(id, table) {
     console.error('Error saving deleted record:', e);
   }
 
-  window.dispatchEvent(new CustomEvent('vyapar_data_changed'));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
 }
 
 export async function restoreRecord(id) {
@@ -86,7 +86,7 @@ export async function restoreRecord(id) {
   } catch (e) {
     console.error('Error restoring record:', e);
   }
-  window.dispatchEvent(new CustomEvent('vyapar_data_changed'));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
 }
 
 export async function permanentlyDeleteRecord(id, table) {
@@ -118,7 +118,7 @@ export async function permanentlyDeleteRecord(id, table) {
       console.warn(`Error executing delete on ${table}:`, err);
     }
   }
-  window.dispatchEvent(new CustomEvent('vyapar_data_changed'));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
 }
 
 export async function emptyRecycleBin() {
@@ -157,5 +157,5 @@ export async function clearAllDatabaseRecords(companyId = null) {
     }
   }
 
-  window.dispatchEvent(new CustomEvent('vyapar_data_changed'));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
 }

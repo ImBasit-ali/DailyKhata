@@ -332,7 +332,7 @@ export default function FuelInventoryPage() {
       return;
     }
 
-    const compName = activeCompany?.name || 'Vyapar Business Services';
+    const compName = activeCompany?.name || 'DailyKhata Business Services';
     
     printWindow.document.write(`
       <html>

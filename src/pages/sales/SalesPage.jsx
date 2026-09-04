@@ -340,7 +340,7 @@ export default function SalesPage() {
     else if (tx.tx_type === 'purchase') typeName = 'Purchase';
 
     setPreviewData({
-      companyName: comp?.name || 'Vyapar Business Services',
+      companyName: comp?.name || 'DailyKhata Business Services',
       companyPhone: comp?.phone || '',
       companyEmail: comp?.email || '',
       billTo: tx.customer

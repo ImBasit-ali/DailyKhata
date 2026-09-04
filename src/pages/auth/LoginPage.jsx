@@ -183,7 +183,7 @@ export default function LoginPage() {
           <BuildingOfficeIcon className="h-10 w-10 text-white transform rotate-6" />
         </div>
         <h2 className="mt-2 text-center text-4xl font-extrabold text-slate-900 tracking-tight">
-          Vyapar
+          DailyKhata
         </h2>
         <p className="mt-2 text-center text-sm text-slate-600 font-medium">
           Multi-Company Ledger & Inventory Management

@@ -43,7 +43,7 @@ export function CompanyProvider({ children }) {
     setCompanies(data || [])
 
     // Restore active company from localStorage or pick first
-    const savedId = localStorage.getItem('vyapar_active_company')
+    const savedId = localStorage.getItem('dailykhata_active_company')
     if (savedId === 'all') {
       setActiveCompanyState(ALL_COMPANIES)
     } else {
@@ -52,7 +52,7 @@ export function CompanyProvider({ children }) {
         setActiveCompanyState(savedCompany)
       } else if (data?.length > 0) {
         setActiveCompanyState(data[0])
-        localStorage.setItem('vyapar_active_company', data[0].id)
+        localStorage.setItem('dailykhata_active_company', data[0].id)
       } else {
         setActiveCompanyState(null)
       }
@@ -68,14 +68,14 @@ export function CompanyProvider({ children }) {
   const setActiveCompany = (company) => {
     if (company?.id === 'all' || company === 'all') {
       setActiveCompanyState(ALL_COMPANIES)
-      localStorage.setItem('vyapar_active_company', 'all')
+      localStorage.setItem('dailykhata_active_company', 'all')
       return
     }
     setActiveCompanyState(company)
     if (company) {
-      localStorage.setItem('vyapar_active_company', company.id)
+      localStorage.setItem('dailykhata_active_company', company.id)
     } else {
-      localStorage.removeItem('vyapar_active_company')
+      localStorage.removeItem('dailykhata_active_company')
     }
   }
 

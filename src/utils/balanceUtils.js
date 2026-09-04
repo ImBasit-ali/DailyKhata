@@ -8,7 +8,7 @@ export function getPreviousNetBalance(activeCompany, companies = [], isAllCompan
   if (isAllCompanies && Array.isArray(companies)) {
     return companies.reduce((sum, c) => {
       const dbVal = Number(c?.opening_balance);
-      const localVal = parseFloat(localStorage.getItem(`vyapar_company_opening_balance_${c.id}`) || '0');
+      const localVal = parseFloat(localStorage.getItem(`dailykhata_company_opening_balance_${c.id}`) || '0');
       const val = !isNaN(dbVal) && dbVal !== 0 ? dbVal : (!isNaN(localVal) ? localVal : 0);
       return sum + val;
     }, 0);
@@ -16,7 +16,7 @@ export function getPreviousNetBalance(activeCompany, companies = [], isAllCompan
 
   if (!activeCompany) return 0;
   const dbVal = Number(activeCompany?.opening_balance);
-  const localVal = parseFloat(localStorage.getItem(`vyapar_company_opening_balance_${activeCompany.id}`) || '0');
+  const localVal = parseFloat(localStorage.getItem(`dailykhata_company_opening_balance_${activeCompany.id}`) || '0');
   return !isNaN(dbVal) && dbVal !== 0 ? dbVal : (!isNaN(localVal) ? localVal : 0);
 }
 
@@ -28,8 +28,8 @@ export async function savePreviousNetBalance(companyId, amount) {
   if (!companyId) return;
 
   // 1. Always persist to localStorage for instant, guaranteed availability
-  localStorage.setItem(`vyapar_company_opening_balance_${companyId}`, String(num));
-  window.dispatchEvent(new Event('storage'));
+  localStorage.setItem(`dailykhata_company_opening_balance_${companyId}`, String(num));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
 
   // 2. Try persisting to Supabase companies table if column exists
   try {
@@ -59,7 +59,7 @@ export function getPurchasePayment(purchase) {
   }
 
   // Check localStorage cache
-  const cachedPaid = localStorage.getItem(`vyapar_purchase_paid_${purchase.id}`);
+  const cachedPaid = localStorage.getItem(`dailykhata_purchase_paid_${purchase.id}`);
   if (cachedPaid !== null) {
     const paid = parseFloat(cachedPaid || '0');
     const rem = Math.max(0, totalCost - paid);
@@ -79,9 +79,9 @@ export async function savePurchasePayment(purchaseId, amountPaid, remainingBalan
 
   if (!purchaseId) return;
 
-  localStorage.setItem(`vyapar_purchase_paid_${purchaseId}`, String(paid));
-  localStorage.setItem(`vyapar_purchase_remaining_${purchaseId}`, String(remaining));
-  window.dispatchEvent(new Event('storage'));
+  localStorage.setItem(`dailykhata_purchase_paid_${purchaseId}`, String(paid));
+  localStorage.setItem(`dailykhata_purchase_remaining_${purchaseId}`, String(remaining));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
 
   try {
     await supabase

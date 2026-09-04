@@ -123,7 +123,7 @@ function triggerDownload(buffer, filename) {
  */
 export async function exportFuelInventory(data, companyName, fuelType, dateRange) {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Vyapar'
+  workbook.creator = 'DailyKhata'
   workbook.created = new Date()
 
   const sheet = workbook.addWorksheet(`${fuelType.charAt(0).toUpperCase() + fuelType.slice(1)} Inventory`)
@@ -183,7 +183,7 @@ export async function exportFuelInventory(data, companyName, fuelType, dateRange
  */
 export async function exportCustomerLedger(data, companyName, customerName) {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Vyapar'
+  workbook.creator = 'DailyKhata'
   workbook.created = new Date()
 
   const sheet = workbook.addWorksheet(`${customerName} Ledger`)
@@ -233,7 +233,7 @@ export async function exportCustomerLedger(data, companyName, customerName) {
  */
 export async function exportExpenses(data, companyName, dateRange) {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Vyapar'
+  workbook.creator = 'DailyKhata'
   workbook.created = new Date()
 
   const sheet = workbook.addWorksheet('Expenses')
@@ -317,7 +317,7 @@ export async function exportExpenses(data, companyName, dateRange) {
  */
 export async function exportReport(reportData, companyName, period) {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Vyapar'
+  workbook.creator = 'DailyKhata'
   workbook.created = new Date()
 
   // Summary sheet

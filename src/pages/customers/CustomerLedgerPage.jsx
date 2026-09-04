@@ -201,7 +201,7 @@ export default function CustomerLedgerPage() {
       : Number(entry.cash_advance);
 
     setPreviewData({
-      companyName: comp?.name || 'Vyapar Business Services',
+      companyName: comp?.name || 'DailyKhata Business Services',
       companyPhone: comp?.phone || '',
       companyEmail: comp?.email || '',
       billTo: customer
@@ -332,7 +332,7 @@ export default function CustomerLedgerPage() {
       return;
     }
 
-    const compName = customer?.company?.name || activeCompany?.name || 'Vyapar Business Services';
+    const compName = customer?.company?.name || activeCompany?.name || 'DailyKhata Business Services';
     
     printWindow.document.write(`
       <html>

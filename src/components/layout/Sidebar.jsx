@@ -52,7 +52,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               </button>
             </div>
             <div className="flex shrink-0 items-center px-4">
-              <h1 className="text-2xl font-bold text-white tracking-tight">Vyapar</h1>
+              <h1 className="text-2xl font-bold text-white tracking-tight">DailyKhata</h1>
             </div>
             <div className="mt-5 h-0 flex-1 overflow-y-auto">
               <nav className="space-y-1 px-2">
@@ -105,7 +105,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex min-h-0 flex-1 flex-col bg-slate-900">
           <div className="flex h-16 shrink-0 items-center bg-slate-900 px-4 border-b border-slate-800">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Vyapar</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">DailyKhata</h1>
           </div>
           {selectedCompany && (
             <div className="px-4 py-3 bg-slate-800 border-b border-slate-700">

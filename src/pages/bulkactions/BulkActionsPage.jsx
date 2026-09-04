@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/formatters'
 import { filterActiveRecords, deleteRecordEntirely } from '@/utils/deletedRecordsManager'
 import DataTable from '@/components/ui/DataTable'
 import { PrinterIcon, ShareIcon, TrashIcon } from '@heroicons/react/24/outline'
+import toast from 'react-hot-toast'
 
 export default function BulkActionsPage() {
   const { activeCompany, companies, isAllCompanies } = useCompany()
@@ -97,23 +98,39 @@ export default function BulkActionsPage() {
   }
 
   const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
     if (!window.confirm('Are you sure you want to delete selected records?')) return;
-    for (const id of selectedIds) {
-      const rec = records.find(r => r.id === id)
-      if (rec) await deleteRecordEntirely(rec.id, rec._table)
+    
+    const toastId = toast.loading('Deleting records...');
+    try {
+      for (const id of selectedIds) {
+        const rec = records.find(r => r.id === id)
+        if (rec) await deleteRecordEntirely(rec.id, rec._table)
+      }
+      toast.success('Records deleted successfully', { id: toastId });
+      setSelectedIds(new Set())
+      fetchRecords()
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to delete records', { id: toastId });
     }
-    setSelectedIds(new Set())
-    fetchRecords()
   }
 
   const handlePrintSelected = () => {
+    if (records.length === 0) {
+      toast.error('No transactions available to print');
+      return;
+    }
     const printWindow = window.open('', '', 'width=900,height=750');
     if (!printWindow) {
       alert('Please allow popups to print');
       return;
     }
-    const compName = activeCompany?.name || 'Vyapar Business Services';
-    const selectedRecords = records.filter(r => selectedIds.has(r.id));
+    const compName = activeCompany?.name || 'DailyKhata Business Services';
+    const selectedRecords = selectedIds.size > 0 
+      ? records.filter(r => selectedIds.has(r.id))
+      : records;
+
     printWindow.document.write(`
       <html>
         <head>
@@ -162,6 +179,14 @@ export default function BulkActionsPage() {
       </html>
     `);
     printWindow.document.close();
+  }
+
+  const handleAction = (actionName) => {
+    if (records.length === 0) {
+      toast.error(`No transactions available for ${actionName}`);
+    } else {
+      toast.success(`${actionName} feature coming soon!`);
+    }
   }
 
   const columns = [
@@ -254,10 +279,10 @@ export default function BulkActionsPage() {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 hover:text-gray-600 cursor-pointer">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 hover:text-gray-600 cursor-pointer">
+            <svg onClick={() => handleAction('Graph')} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 hover:text-gray-600 cursor-pointer">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
             </svg>
-            <button className="bg-[#107c41] text-white rounded px-2 py-0.5 text-xs font-bold shadow-sm hover:bg-green-700">XLS</button>
+            <button onClick={() => handleAction('Excel')} className="bg-[#107c41] text-white rounded px-2 py-0.5 text-xs font-bold shadow-sm hover:bg-green-700">XLS</button>
             <PrinterIcon className="w-5 h-5 hover:text-gray-600 cursor-pointer" onClick={handlePrintSelected} />
           </div>
         </div>

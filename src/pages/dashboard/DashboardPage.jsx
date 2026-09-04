@@ -36,9 +36,9 @@ export default function DashboardPage() {
     const handleDataChanged = () => {
       fetchDashboardData()
     }
-    window.addEventListener('vyapar_data_changed', handleDataChanged)
+    window.addEventListener('dailykhata_data_changed', handleDataChanged)
     return () => {
-      window.removeEventListener('vyapar_data_changed', handleDataChanged)
+      window.removeEventListener('dailykhata_data_changed', handleDataChanged)
     }
   }, [activeCompany, companies, isAllCompanies, period])
 

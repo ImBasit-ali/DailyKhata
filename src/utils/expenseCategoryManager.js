@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'vyapar_expense_categories';
+const STORAGE_KEY = 'dailykhata_expense_categories';
 
 /**
  * Get all stored expense categories from localStorage

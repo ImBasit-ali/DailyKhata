@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 
-const TRASH_STORAGE_KEY = 'vyapar_trash_records';
+const TRASH_STORAGE_KEY = 'dailykhata_trash_records';
 
 /**
  * Get all items in the Trash / Recycle Bin.
@@ -51,7 +51,7 @@ export function moveToTrash(itemData) {
 
     const updated = [newEntry, ...current];
     localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('vyapar_trash_updated'));
+    window.dispatchEvent(new CustomEvent('dailykhata_trash_updated'));
     return newEntry;
   } catch (err) {
     console.error('Error moving item to trash:', err);
@@ -79,8 +79,8 @@ export async function restoreItem(trashId) {
   const remaining = current.filter((it) => it.trashId !== trashId);
   localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(remaining));
 
-  window.dispatchEvent(new CustomEvent('vyapar_trash_updated'));
-  window.dispatchEvent(new CustomEvent('vyapar_data_changed', { detail: { table: target.table } }));
+  window.dispatchEvent(new CustomEvent('dailykhata_trash_updated'));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed', { detail: { table: target.table } }));
   return target;
 }
 
@@ -107,8 +107,8 @@ export async function restoreMultipleItems(trashIds) {
   const remaining = current.filter((it) => !trashIds.includes(it.trashId));
   localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(remaining));
 
-  window.dispatchEvent(new CustomEvent('vyapar_trash_updated'));
-  window.dispatchEvent(new CustomEvent('vyapar_data_changed'));
+  window.dispatchEvent(new CustomEvent('dailykhata_trash_updated'));
+  window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
   return restoredCount;
 }
 
@@ -119,7 +119,7 @@ export function permanentlyDeleteItem(trashId) {
   const current = getTrashItems(null, true);
   const remaining = current.filter((it) => it.trashId !== trashId);
   localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(remaining));
-  window.dispatchEvent(new CustomEvent('vyapar_trash_updated'));
+  window.dispatchEvent(new CustomEvent('dailykhata_trash_updated'));
 }
 
 /**
@@ -130,7 +130,7 @@ export function permanentlyDeleteMultipleItems(trashIds) {
   const current = getTrashItems(null, true);
   const remaining = current.filter((it) => !trashIds.includes(it.trashId));
   localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(remaining));
-  window.dispatchEvent(new CustomEvent('vyapar_trash_updated'));
+  window.dispatchEvent(new CustomEvent('dailykhata_trash_updated'));
 }
 
 /**
@@ -144,5 +144,5 @@ export function emptyTrash(companyId = null) {
     const remaining = current.filter((it) => it.company_id !== companyId);
     localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(remaining));
   }
-  window.dispatchEvent(new CustomEvent('vyapar_trash_updated'));
+  window.dispatchEvent(new CustomEvent('dailykhata_trash_updated'));
 }

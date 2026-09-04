@@ -25,7 +25,7 @@ export default function InvoicePreviewModal({
     const compId = activeCompany?.id || currentCompany?.id;
     if (compId) {
       try {
-        const raw = localStorage.getItem(`vyapar_company_settings_${compId}`);
+        const raw = localStorage.getItem(`dailykhata_company_settings_${compId}`);
         if (raw) {
           setPrintSettings(prev => ({ ...prev, ...JSON.parse(raw) }));
         }
@@ -45,7 +45,7 @@ export default function InvoicePreviewModal({
   } = data;
 
   const compDetails = printSettings.details || {};
-  const companyName = compDetails.name || activeCompany?.name || 'Vyapar Business Services';
+  const companyName = compDetails.name || activeCompany?.name || 'DailyKhata Business Services';
   const companyPhone = compDetails.number || '';
   const companyEmail = compDetails.email || '';
   const companyAddress = compDetails.address || '';
