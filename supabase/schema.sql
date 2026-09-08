@@ -34,6 +34,7 @@ CREATE TABLE public.customers (
   name TEXT NOT NULL,
   code TEXT NOT NULL,  -- short code like "P", "S", "SK", "B"
   category TEXT NOT NULL DEFAULT 'Regular', -- e.g. Regular, Commercial, Supplier, Staff, VIP
+  phone TEXT,  -- optional phone number for contact / search
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(company_id, code)

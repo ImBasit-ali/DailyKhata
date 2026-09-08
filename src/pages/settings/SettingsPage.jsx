@@ -7,6 +7,7 @@ import { clearAllDatabaseRecords } from '@/utils/deletedRecordsManager';
 import { emptyTrash } from '@/utils/trashManager';
 import { formatCurrency } from '@/utils/formatters';
 import { formatDateDisplay } from '@/utils/dateUtils';
+import { getCompanyCode } from '@/utils/companyUtils';
 import toast from 'react-hot-toast';
 import {
   BuildingStorefrontIcon,
@@ -15,6 +16,12 @@ import {
   UserCircleIcon,
   InformationCircleIcon,
   TrashIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ArrowUpTrayIcon,
+  TableCellsIcon,
+  UsersIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SettingsPage() {
@@ -43,6 +50,13 @@ export default function SettingsPage() {
   const [printPageSize, setPrintPageSize] = useState('A4');
   const [printTextSize, setPrintTextSize] = useState('medium');
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+
+  // Data Overview & Transfer section state
+  const [showDataOverview, setShowDataOverview] = useState(false);
+  const [overviewTab, setOverviewTab] = useState('companies'); // companies | customers | transactions
+  const [overviewData, setOverviewData] = useState({ companies: [], customers: [], transactions: [] });
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (activeCompany?.id && !selectedCompanyId) {
@@ -134,31 +148,22 @@ export default function SettingsPage() {
     if (!targetCompany?.id) return;
     setLoading(true);
     try {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('fuel_initial_stock')
-        .select('id')
-        .eq('company_id', targetCompany.id)
-        .eq('fuel_type', fuelType)
-        .maybeSingle();
-
-      if (existing) {
-        const { error } = await supabase
-          .from('fuel_initial_stock')
-          .update({ initial_balance: parseFloat(balance || 0) })
-          .eq('id', existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('fuel_initial_stock').insert({
-          company_id: targetCompany.id,
-          fuel_type: fuelType,
-          initial_balance: parseFloat(balance || 0),
-          effective_date: new Date().toISOString().split('T')[0],
-        });
-        if (error) throw error;
-      }
+        .upsert(
+          {
+            company_id: targetCompany.id,
+            fuel_type: fuelType,
+            initial_balance: parseFloat(balance || 0),
+            effective_date: new Date().toISOString().split('T')[0],
+          },
+          { onConflict: 'company_id,fuel_type' }
+        );
+      if (error) throw error;
       toast.success(`${fuelType.toUpperCase()} initial stock saved`);
     } catch (err) {
-      toast.error(`Failed to save ${fuelType} stock`);
+      console.error(err);
+      toast.error(`Failed to save ${fuelType} stock: ${err.message || ''}`);
     } finally {
       setLoading(false);
     }
@@ -208,6 +213,102 @@ export default function SettingsPage() {
       toast.success('Signed out successfully');
     } catch (error) {
       toast.error('Failed to sign out');
+    }
+  };
+
+  // ─── Data Overview: fetch all companies, customers, transactions ───────────
+  const fetchOverviewData = async () => {
+    setOverviewLoading(true);
+    try {
+      const companyIds = (companies || []).map((c) => c.id).filter(Boolean);
+      if (companyIds.length === 0) {
+        setOverviewData({ companies: companies || [], customers: [], transactions: [] });
+        return;
+      }
+
+      const [custRes, txRes] = await Promise.all([
+        supabase
+          .from('customers')
+          .select('*')
+          .in('company_id', companyIds)
+          .order('name'),
+        supabase
+          .from('cash_transactions')
+          .select('*, customers(id,name,code)')
+          .in('company_id', companyIds)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(200),
+      ]);
+
+      setOverviewData({
+        companies: companies || [],
+        customers: custRes.data || [],
+        transactions: txRes.data || [],
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load overview data');
+    } finally {
+      setOverviewLoading(false);
+    }
+  };
+
+  // Opens the overview panel and fetches data the first time
+  const handleToggleOverview = () => {
+    const next = !showDataOverview;
+    setShowDataOverview(next);
+    if (next && overviewData.companies.length === 0) {
+      fetchOverviewData();
+    }
+  };
+
+  // Export all data as a single JSON file for transfer to another account
+  const handleExportAllData = async () => {
+    setExporting(true);
+    try {
+      const companyIds = (companies || []).map((c) => c.id).filter(Boolean);
+
+      const [custRes, txRes, ledgerRes, expRes, fuelRes, purchRes, initStockRes] =
+        await Promise.all([
+          supabase.from('customers').select('*').in('company_id', companyIds),
+          supabase.from('cash_transactions').select('*').in('company_id', companyIds),
+          supabase.from('ledger_entries').select('*').in('company_id', companyIds),
+          supabase.from('expenses').select('*').in('company_id', companyIds),
+          supabase.from('fuel_inventory').select('*').in('company_id', companyIds),
+          supabase.from('fuel_purchases').select('*').in('company_id', companyIds),
+          supabase.from('fuel_initial_stock').select('*').in('company_id', companyIds),
+        ]);
+
+      const exportPayload = {
+        exported_at: new Date().toISOString(),
+        exported_by: user?.email || '',
+        version: '1.0',
+        companies: companies || [],
+        customers: custRes.data || [],
+        cash_transactions: txRes.data || [],
+        ledger_entries: ledgerRes.data || [],
+        expenses: expRes.data || [],
+        fuel_inventory: fuelRes.data || [],
+        fuel_purchases: purchRes.data || [],
+        fuel_initial_stock: initStockRes.data || [],
+      };
+
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DailyKhata_Export_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('All data exported! Share this file with your other Google account to import.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Export failed: ' + (err.message || ''));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -670,6 +771,232 @@ export default function SettingsPage() {
       )}
 
 
+
+      {/* 3.5 Data Overview & Transfer to Another Account */}
+      <div className="card border border-indigo-200 shadow-sm overflow-hidden">
+        {/* Collapsible Header */}
+        <button
+          type="button"
+          onClick={handleToggleOverview}
+          className="w-full flex items-center justify-between p-4 hover:bg-indigo-50/30 transition"
+        >
+          <div className="flex items-center gap-2">
+            <TableCellsIcon className="h-4 w-4 text-indigo-600" />
+            <h2 className="text-sm font-bold text-slate-900">
+              Data Overview & Transfer (ڈیٹا منتقل کریں)
+            </h2>
+            <span className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+              All Companies
+            </span>
+          </div>
+          {showDataOverview ? (
+            <ChevronUpIcon className="h-4 w-4 text-slate-400" />
+          ) : (
+            <ChevronDownIcon className="h-4 w-4 text-slate-400" />
+          )}
+        </button>
+
+        {showDataOverview && (
+          <div className="border-t border-indigo-100 p-4 space-y-4">
+            <p className="text-xs text-slate-500">
+              View all your data in one place. Use <strong>Export All Data</strong> to download a backup JSON file — you can sign into another Google account and import this file to transfer all your data.
+            </p>
+
+            {/* Export Button */}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleExportAllData}
+                disabled={exporting}
+                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition"
+              >
+                <ArrowUpTrayIcon className="h-3.5 w-3.5" />
+                {exporting ? 'Exporting…' : 'Export All Data (JSON)'}
+              </button>
+              <button
+                type="button"
+                onClick={fetchOverviewData}
+                disabled={overviewLoading}
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2 transition"
+              >
+                {overviewLoading ? 'Refreshing…' : '↻ Refresh'}
+              </button>
+            </div>
+
+            {/* Tab Switcher */}
+            <div className="flex gap-1 border-b border-slate-200 pb-0">
+              {[
+                { key: 'companies', label: 'Companies', Icon: BuildingStorefrontIcon, count: overviewData.companies.length },
+                { key: 'customers', label: 'Customers', Icon: UsersIcon, count: overviewData.customers.length },
+                { key: 'transactions', label: 'Transactions', Icon: CurrencyDollarIcon, count: overviewData.transactions.length },
+              ].map(({ key, label, Icon, count }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setOverviewTab(key)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px ${
+                    overviewTab === key
+                      ? 'border-indigo-600 text-indigo-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                  <span className="bg-slate-100 text-slate-600 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                    {count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {overviewLoading ? (
+              <div className="text-center py-8 text-xs text-slate-400">Loading data…</div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+
+                {/* ── COMPANIES TAB ── */}
+                {overviewTab === 'companies' && (
+                  overviewData.companies.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-slate-400">No companies found.</div>
+                  ) : (
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider w-10">S.N.</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Company Name</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Firm Code</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Created</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {overviewData.companies.map((comp, idx) => (
+                          <tr key={comp.id} className={`hover:bg-slate-50 ${activeCompany?.id === comp.id ? 'bg-indigo-50/40' : ''}`}>
+                            <td className="px-3.5 py-2.5 text-xs text-slate-500 tabular-nums">{idx + 1}</td>
+                            <td className="px-3.5 py-2.5 text-xs font-semibold text-slate-800">{comp.name}</td>
+                            <td className="px-3.5 py-2.5">
+                              <span className="font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs px-2 py-0.5 rounded font-bold">
+                                {getCompanyCode(comp.name)}
+                              </span>
+                            </td>
+                            <td className="px-3.5 py-2.5 text-xs text-slate-500">{formatDateDisplay(comp.created_at)}</td>
+                            <td className="px-3.5 py-2.5 text-center">
+                              {activeCompany?.id === comp.id && (
+                                <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-medium">Active</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )
+                )}
+
+                {/* ── CUSTOMERS TAB ── */}
+                {overviewTab === 'customers' && (
+                  overviewData.customers.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-slate-400">No customers found.</div>
+                  ) : (
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider w-10">S.N.</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Party / Customer Name</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Code</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Category</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Phone</th>
+                          <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Company</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {overviewData.customers.map((cust, idx) => {
+                          const comp = overviewData.companies.find((c) => c.id === cust.company_id);
+                          return (
+                            <tr key={cust.id} className="hover:bg-slate-50">
+                              <td className="px-3.5 py-2.5 text-xs text-slate-500 tabular-nums">{idx + 1}</td>
+                              <td className="px-3.5 py-2.5 text-xs font-medium text-slate-900">{cust.name}</td>
+                              <td className="px-3.5 py-2.5">
+                                <span className="font-mono text-xs bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-bold">{cust.code}</span>
+                              </td>
+                              <td className="px-3.5 py-2.5 text-xs text-slate-600">{cust.category || 'Regular'}</td>
+                              <td className="px-3.5 py-2.5 text-xs text-slate-500">{cust.phone || '—'}</td>
+                              <td className="px-3.5 py-2.5 text-xs text-indigo-700 font-semibold">
+                                {comp ? (
+                                  <span className="bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded text-[10px] font-bold">{getCompanyCode(comp.name)}</span>
+                                ) : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )
+                )}
+
+                {/* ── TRANSACTIONS TAB ── */}
+                {overviewTab === 'transactions' && (
+                  overviewData.transactions.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-slate-400">No transactions found.</div>
+                  ) : (
+                    <>
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider w-10">S.N.</th>
+                            <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Date</th>
+                            <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Type</th>
+                            <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Mode</th>
+                            <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Party</th>
+                            <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Description</th>
+                            <th className="px-3.5 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider text-right">Amount (Rs)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {overviewData.transactions.map((tx, idx) => {
+                            const typeLabels = { sale: 'Sale', cash_advance: 'Advance', due_payment: 'Due Paid', purchase: 'Purchase' };
+                            const custName = tx.customers?.name || tx.customer?.name || '—';
+                            return (
+                              <tr key={tx.id} className="hover:bg-slate-50">
+                                <td className="px-3.5 py-2 text-xs text-slate-400 tabular-nums">{idx + 1}</td>
+                                <td className="px-3.5 py-2 text-xs text-slate-600 whitespace-nowrap">{formatDateDisplay(tx.date)}</td>
+                                <td className="px-3.5 py-2">
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                                    tx.tx_type === 'sale' ? 'bg-emerald-100 text-emerald-800' :
+                                    tx.tx_type === 'cash_advance' ? 'bg-blue-100 text-blue-800' :
+                                    tx.tx_type === 'due_payment' ? 'bg-amber-100 text-amber-800' :
+                                    'bg-slate-100 text-slate-700'
+                                  }`}>
+                                    {typeLabels[tx.tx_type] || tx.tx_type}
+                                  </span>
+                                </td>
+                                <td className="px-3.5 py-2">
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${tx.is_credit ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+                                    {tx.is_credit ? 'Credit' : 'Cash'}
+                                  </span>
+                                </td>
+                                <td className="px-3.5 py-2 text-xs text-slate-700">{custName}</td>
+                                <td className="px-3.5 py-2 text-xs text-slate-500 max-w-[160px] truncate">{tx.description || '—'}</td>
+                                <td className="px-3.5 py-2 text-xs font-bold text-slate-800 text-right tabular-nums whitespace-nowrap">
+                                  {formatCurrency(tx.amount)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      {overviewData.transactions.length >= 200 && (
+                        <div className="text-center py-2 text-[10px] text-slate-400 border-t border-slate-100">
+                          Showing latest 200 transactions. Use Export to get all data.
+                        </div>
+                      )}
+                    </>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 4. Accounting Rules & Double-Counting Note Banner */}
       <div className="card p-4 bg-slate-50 border border-slate-200 shadow-sm space-y-2">

@@ -51,6 +51,7 @@ export default function CustomersPage() {
     name: '',
     code: '',
     category: 'Regular',
+    phone: '',
   });
 
   // Invoice Preview Modal (Image 2)
@@ -169,12 +170,14 @@ export default function CustomersPage() {
             name: isDuplicate ? `${customer.name} (Copy)` : customer.name,
             code: isDuplicate ? `${customer.code}2` : customer.code,
             category: customer.category || 'Regular',
+            phone: customer.phone || '',
           }
         : {
             company_id: targetCompanyId,
             name: '',
             code: '',
             category: 'Regular',
+            phone: '',
           }
     );
     setIsModalOpen(true);
@@ -211,6 +214,7 @@ export default function CustomersPage() {
         name: formData.name.trim(),
         code: autoCode,
         category: selectedCat,
+        phone: formData.phone?.trim() || null,
       };
 
       if (editingCustomer) {
@@ -227,6 +231,14 @@ export default function CustomersPage() {
             .eq('id', editingCustomer.id);
           error = retry.error;
         }
+        if (error && (error.message?.includes('phone') || error.code === '42703')) {
+          delete payload.phone;
+          const retry2 = await supabase
+            .from('customers')
+            .update(payload)
+            .eq('id', editingCustomer.id);
+          error = retry2.error;
+        }
         if (error) throw error;
         toast.success('Party updated successfully');
       } else {
@@ -236,6 +248,12 @@ export default function CustomersPage() {
           const retry = await supabase.from('customers').insert([payload]).select();
           error = retry.error;
           newCust = retry.data;
+        }
+        if (error && (error.message?.includes('phone') || error.code === '42703')) {
+          delete payload.phone;
+          const retry2 = await supabase.from('customers').insert([payload]).select();
+          error = retry2.error;
+          newCust = retry2.data;
         }
         if (error) throw error;
         const createdId = newCust?.[0]?.id;
@@ -324,12 +342,14 @@ export default function CustomersPage() {
       const name = (c.name || '').toLowerCase();
       const cat = (c.category || '').toLowerCase();
       const bal = String(c.balance || '');
+      const phone = (c.phone || '').toLowerCase();
 
       return (
         code.includes(q) ||
         name.includes(q) ||
         cat.includes(q) ||
-        bal.includes(q)
+        bal.includes(q) ||
+        phone.includes(q)
       );
     });
   }, [customers, selectedCategory, searchQuery]);
@@ -560,7 +580,7 @@ export default function CustomersPage() {
             onToggleGraph={() => setShowGraph(!showGraph)}
             onExportExcel={exportToExcel}
             onPrintTable={handlePrintTable}
-            searchPlaceholder="Search customer, code, category, balance..."
+            searchPlaceholder="Search name, code, category, phone, balance..."
           />
         </div>
       </div>
@@ -729,6 +749,21 @@ export default function CustomersPage() {
               className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 border"
               placeholder="e.g. Parvez Khan / Al-Rehman Traders"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Phone Number (فون نمبر) <span className="text-slate-400 text-xs font-normal">(Optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
+              className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 border"
+              placeholder="e.g. 0300-1234567"
             />
           </div>
 
