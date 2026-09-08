@@ -999,7 +999,7 @@ export default function SettingsPage() {
       </div>
 
       {/* 4. Accounting Rules & Double-Counting Note Banner */}
-      <div className="card p-4 bg-slate-50 border border-slate-200 shadow-sm space-y-2">
+      {/* <div className="card p-4 bg-slate-50 border border-slate-200 shadow-sm space-y-2">
         <div className="flex items-center gap-2 text-indigo-700">
           <InformationCircleIcon className="h-4 w-4" />
           <h3 className="text-xs font-bold uppercase tracking-wider">
@@ -1028,7 +1028,7 @@ export default function SettingsPage() {
       </div>
 
       {/* 5. Database Clear / Clean Slate */}
-      <div className="card p-4 border border-rose-200 bg-rose-50/40 shadow-sm space-y-2">
+      {/* <div className="card p-4 border border-rose-200 bg-rose-50/40 shadow-sm space-y-2">
         <div className="flex items-center gap-2 text-rose-700">
           <TrashIcon className="h-4 w-4" />
           <h2 className="text-sm font-bold">
@@ -1049,7 +1049,7 @@ export default function SettingsPage() {
             {clearing ? 'Clearing Database...' : 'Clear All Database Records Now'}
           </button>
         </div>
-      </div>
+      </div> */} */
 
       {/* 6. User Profile */}
       <div className="card p-4 border border-slate-200 shadow-sm">
