@@ -1049,7 +1049,7 @@ export default function SettingsPage() {
             {clearing ? 'Clearing Database...' : 'Clear All Database Records Now'}
           </button>
         </div>
-      </div> */} */
+      </div> */} 
 
       {/* 6. User Profile */}
       <div className="card p-4 border border-slate-200 shadow-sm">
