@@ -69,6 +69,18 @@ export async function deleteRecordEntirely(id, table) {
     console.error('Error saving deleted record:', e);
   }
 
+  // Also delete from Supabase so the record is fully removed from all views and queries
+  if (table) {
+    try {
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) {
+        console.warn(`Supabase delete on ${table} for ${id}:`, error.message);
+      }
+    } catch (err) {
+      console.warn(`Error executing delete on ${table}:`, err);
+    }
+  }
+
   window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
 }
 

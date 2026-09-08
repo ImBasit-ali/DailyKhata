@@ -24,6 +24,7 @@ export default function ReportsPage() {
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
   const [reportData, setReportData] = useState(null)
+  const [hasData, setHasData] = useState(true)
 
   const companyIds = useMemo(() => {
     if (!companies || companies.length === 0) return []
@@ -223,6 +224,13 @@ export default function ReportsPage() {
         expensesData: expenses,
         transactionsData: transactions,
       })
+      // Show empty state if no records exist for this period
+      setHasData(
+        transactions.length > 0 ||
+        expenses.length > 0 ||
+        fuel.length > 0 ||
+        fuelPurchases.length > 0
+      )
     } catch (err) {
       console.error('Report fetch error:', err)
       toast.error('Failed to load report data')
@@ -349,6 +357,14 @@ export default function ReportsPage() {
               <div className="skeleton h-32 w-full" />
             </div>
           ))}
+        </div>
+      ) : !hasData ? (
+        <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl border border-dashed border-slate-200">
+          <svg className="h-16 w-16 text-slate-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+          </svg>
+          <h3 className="text-lg font-semibold text-slate-400">No Transactions Found</h3>
+          <p className="text-sm text-slate-400 mt-1">No sales, expenses, or fuel records for this period.</p>
         </div>
       ) : reportData ? (
         <div className="space-y-4">

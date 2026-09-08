@@ -89,27 +89,61 @@ export default function CustomersPage() {
         .order('date', { ascending: false })
         .order('created_at', { ascending: false });
 
+      let expenseQuery = supabase
+        .from('expenses')
+        .select('customer_code, amount, company_id');
+
       if (!isAllCompanies && activeCompany?.id) {
         custQuery = custQuery.eq('company_id', activeCompany.id);
         ledgerQuery = ledgerQuery.eq('company_id', activeCompany.id);
+        expenseQuery = expenseQuery.eq('company_id', activeCompany.id);
       } else if (companyIds.length > 0) {
         custQuery = custQuery.in('company_id', companyIds);
         ledgerQuery = ledgerQuery.in('company_id', companyIds);
+        expenseQuery = expenseQuery.in('company_id', companyIds);
       }
 
-      const [custRes, ledgerRes] = await Promise.all([custQuery, ledgerQuery]);
+      const [custRes, ledgerRes, expenseRes] = await Promise.all([custQuery, ledgerQuery, expenseQuery]);
 
       if (custRes.error) throw custRes.error;
 
       const latestLedgers = ledgerRes.data || [];
+      const allExpenses = expenseRes.data || [];
+
+      // Build a map: customer_code → total expense amount charged to that party
+      const expenseByCode = {};
+      allExpenses.forEach((exp) => {
+        if (exp.customer_code) {
+          const code = exp.customer_code.trim().toUpperCase();
+          expenseByCode[code] = (expenseByCode[code] || 0) + Number(exp.amount || 0);
+        }
+      });
+
       const activeCustomers = filterActiveRecords(custRes.data || []);
       const customerMap = activeCustomers.map((c) => {
+        // Latest ledger entry for this customer gives the cumulative running_balance
+        // (which already includes ledger entries created from expense saves)
         const ledger = latestLedgers.find((l) => l.customer_id === c.id);
+        const ledgerBalance = ledger ? Number(ledger.running_balance) : 0;
+
+        // Add expenses charged to this party (by customer_code) that are NOT
+        // already represented in ledger_entries (i.e. older expenses before the fix)
+        // We only add expense totals when there are NO ledger entries yet for this customer,
+        // to avoid double-counting with the ledger entries our fix now creates.
+        const hasLedgerEntries = latestLedgers.some((l) => l.customer_id === c.id);
+        const customerCode = (c.code || '').trim().toUpperCase();
+        const expenseTotal = expenseByCode[customerCode] || 0;
+
+        // If the party already has ledger entries, those already include expense amounts
+        // (via the ledger_entries inserted on expense save). Use ledger balance as-is.
+        // If there are NO ledger entries yet, add the expense total as the balance.
+        const balance = hasLedgerEntries ? ledgerBalance : expenseTotal;
+
         const resolvedCategory = getCustomerCategory(c);
         return {
           ...c,
           category: resolvedCategory,
-          balance: ledger ? ledger.running_balance : 0,
+          balance,
         };
       });
 
@@ -121,6 +155,7 @@ export default function CustomersPage() {
       setLoading(false);
     }
   };
+
 
   const handleOpenModal = (customer = null, isDuplicate = false) => {
     setEditingCustomer(isDuplicate ? null : customer);

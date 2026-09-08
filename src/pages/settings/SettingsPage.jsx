@@ -242,8 +242,8 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* 1. Previous Net Balance Setting Card */}
-      {targetCompany ? (
+      {/* 1. Previous Net Balance Setting Card — shown only in All Companies mode */}
+      {isAllCompanies && targetCompany && (
         <div className="card p-4 border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 mb-3">
             <BanknotesIcon className="h-4 w-4 text-emerald-600" />
@@ -287,10 +287,6 @@ export default function SettingsPage() {
               </p>
             )}
           </form>
-        </div>
-      ) : (
-        <div className="card p-4 bg-amber-50 text-amber-800 text-xs border border-amber-200">
-          Please select or create a company to manage settings.
         </div>
       )}
 
@@ -405,74 +401,213 @@ export default function SettingsPage() {
                     Layout {num}
                   </button>
                 ))}
+                {/* Layout 11: Gill Bricks Company custom form */}
+                <button
+                  type="button"
+                  onClick={() => setPrintLayout('layout11')}
+                  className={`px-3 py-1 text-xs border rounded font-semibold ${printLayout === 'layout11' ? 'bg-blue-700 text-white border-blue-700' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
+                >
+                  Layout 11 (Gill Bricks)
+                </button>
+                {/* Layout 12: Gill Bricks Company generic CSS preview */}
+                <button
+                  type="button"
+                  onClick={() => setPrintLayout('layout12')}
+                  className={`px-3 py-1 text-xs border rounded font-semibold ${printLayout === 'layout12' ? 'bg-blue-700 text-white border-blue-700' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
+                >
+                  Layout 12 (Gill Bricks Form)
+                </button>
               </div>
               
               {/* Layout Preview */}
               <div className="mt-4 p-4 border rounded-xl bg-slate-50 flex flex-col items-center justify-center">
                 <span className="text-xs text-slate-500 mb-2">Live Layout Preview</span>
-                <div 
-                  className="bg-white shadow-sm border border-slate-200 transition-all duration-300 relative overflow-hidden"
-                  style={{ 
-                    width: printerType === 'thermal' ? '150px' : '220px',
-                    height: '280px',
-                    padding: '10px'
-                  }}
-                >
-                  {/* Header Preview */}
-                  <div 
-                    className={`text-center pb-2 border-b-2 mb-2 ${
-                      printLayout === 'layout2' || printLayout === 'layout6' ? 'text-left border-b border-dashed' : 
-                      printLayout === 'layout3' || printLayout === 'layout7' ? 'bg-slate-100 rounded p-2 border-none' : 
-                      printLayout === 'layout4' || printLayout === 'layout8' ? 'border-b-4' : 
-                      printLayout === 'layout5' || printLayout === 'layout9' ? 'text-right border-b border-dotted' : 
-                      printLayout === 'layout10' ? 'border-b-0 shadow-sm mb-3' : ''
-                    }`}
-                    style={{ borderColor: themeColor }}
+
+                {printLayout === 'layout12' ? (
+                  /* Layout 12: Generic CSS recreation of Gill Bricks form */
+                  <div
+                    className="bg-white shadow-sm border-2 border-blue-300 rounded overflow-hidden transition-all duration-300"
+                    style={{ width: '220px', height: '280px', fontFamily: 'Arial, sans-serif' }}
                   >
+                    {/* ── Header: logo area + company name ── */}
+                    <div className="flex items-center justify-between px-2 pt-1.5 pb-1" style={{ borderBottom: '1.5px solid #1a3fa8' }}>
+                      {/* chimney icon placeholder */}
+                      <div className="flex items-center gap-1">
+                        <div style={{ width: '10px', height: '14px', background: '#1a3fa8', borderRadius: '2px 2px 0 0', position: 'relative' }}>
+                          <div style={{ width: '4px', height: '4px', background: '#1a3fa8', position: 'absolute', top: '-3px', left: '3px', borderRadius: '1px' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '5px', fontWeight: '900', color: '#1a3fa8', lineHeight: 1 }}>Gill Bricks</div>
+                          <div style={{ fontSize: '4px', color: '#1a3fa8', lineHeight: 1 }}>Company</div>
+                          <div style={{ fontSize: '4px', color: '#1a3fa8', lineHeight: 1.2 }}>📞 0342-4565344</div>
+                        </div>
+                      </div>
+                      {/* Urdu title right side */}
+                      <div style={{ fontSize: '7px', fontWeight: '900', color: '#1a3fa8', direction: 'rtl' }}>گل برکس کمپنی</div>
+                    </div>
+
+                    {/* ── Blue banner bar ── */}
+                    <div style={{ background: '#1a3fa8', color: '#fff', textAlign: 'center', fontSize: '4.5px', padding: '2px 4px', direction: 'rtl' }}>
+                      اڈا میرانہ، تحصیل یزمان ضلع بہاولپور
+                    </div>
+
+                    {/* ── Date + Customer Name row ── */}
+                    <div className="flex justify-between items-center px-2" style={{ marginTop: '4px', marginBottom: '3px' }}>
+                      <div style={{ fontSize: '4.5px', color: '#1a3fa8', fontWeight: 'bold' }}>Date: ______</div>
+                      <div style={{ fontSize: '4.5px', color: '#1a3fa8', direction: 'rtl', fontWeight: 'bold' }}>:نام خریدار ______</div>
+                    </div>
+
+                    {/* ── 3-column Urdu table ── */}
+                    <div className="mx-2" style={{ border: '1px solid #1a3fa8', borderRadius: '2px', overflow: 'hidden' }}>
+                      {/* Header row */}
+                      <div className="flex" style={{ borderBottom: '1px solid #1a3fa8', direction: 'rtl' }}>
+                        {['مال ریٹ','مال قسم','تعداد مال'].map((h, i) => (
+                          <div key={i} style={{ flex: 1, fontSize: '4px', color: '#1a3fa8', fontWeight: 'bold', textAlign: 'center', padding: '2px 1px', borderLeft: i < 2 ? '1px solid #1a3fa8' : 'none' }}>{h}</div>
+                        ))}
+                      </div>
+                      {/* 2 empty data rows */}
+                      {[0,1].map(r => (
+                        <div key={r} className="flex" style={{ borderBottom: r === 0 ? '1px solid #c7d3f0' : 'none', direction: 'rtl', height: '10px' }}>
+                          {[0,1,2].map(c => (
+                            <div key={c} style={{ flex: 1, borderLeft: c < 2 ? '1px solid #c7d3f0' : 'none' }} />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── میزان مال box ── */}
+                    <div className="mx-2 mt-1.5" style={{ border: '1px solid #1a3fa8', borderRadius: '2px', padding: '2px 4px', direction: 'rtl' }}>
+                      <div className="flex justify-between">
+                        <div style={{ fontSize: '3.8px', color: '#1a3fa8' }}>سابقہ میزان مال: ____</div>
+                        <div style={{ fontSize: '3.8px', color: '#1a3fa8' }}>کل میزان مال: ____</div>
+                      </div>
+                      <div style={{ height: '6px' }} />
+                    </div>
+
+                    {/* ── میزان رقم box ── */}
+                    <div className="mx-2 mt-1" style={{ border: '1px solid #1a3fa8', borderRadius: '2px', padding: '2px 4px', direction: 'rtl' }}>
+                      <div className="flex justify-between">
+                        <div style={{ fontSize: '3.8px', color: '#1a3fa8' }}>سابقہ میزان رقم: ____</div>
+                        <div style={{ fontSize: '3.8px', color: '#1a3fa8' }}>کل میزان رقم: ____</div>
+                      </div>
+                      <div style={{ height: '6px' }} />
+                    </div>
+
+                    {/* ── Signature lines ── */}
+                    <div className="flex justify-between px-2 mt-1.5" style={{ direction: 'rtl' }}>
+                      <div style={{ fontSize: '3.8px', color: '#1a3fa8' }}>دستخط: ____</div>
+                      <div style={{ fontSize: '3.8px', color: '#1a3fa8' }}>ڈرائیور: ____</div>
+                    </div>
+
+                    {/* ── ریمارکس ── */}
+                    <div className="px-2 mt-1" style={{ direction: 'rtl' }}>
+                      <div style={{ fontSize: '3.8px', color: '#1a3fa8' }}>ریمارکس: ___________________</div>
+                    </div>
+
+                    {/* ── Footer ── */}
+                    <div style={{ borderTop: '1.5px solid #1a3fa8', marginTop: '4px', textAlign: 'center', padding: '2px 0' }}>
+                      <div style={{ fontSize: '3.8px', color: '#1a3fa8', fontWeight: 'bold' }}>📞 0345-7080400</div>
+                      <div style={{ fontSize: '3px', color: '#1a3fa8' }}>(واٹس ایپ پر رابطہ کریں)</div>
+                    </div>
+                  </div>
+                ) : printLayout === 'layout11' ? (
+                  /* Layout 11: show the actual Gill Bricks form as the preview */
+                  <div
+                    className="shadow-sm border-2 border-blue-300 rounded overflow-hidden transition-all duration-300 relative"
+                    style={{ width: '220px', height: '280px' }}
+                  >
+                    <img
+                      src="/gill_bricks_layout.jpg"
+                      alt="Gill Bricks Layout Preview"
+                      className="w-full h-full object-cover object-top"
+                    />
+                    {/* Sample overlay indicators so user can see data will be placed on top */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div
+                        className="absolute bg-blue-600/80 text-white rounded px-1"
+                        style={{ top: '20.5%', left: '8%', fontSize: '5px', fontWeight: 'bold' }}
+                      >
+                        {new Date().toLocaleDateString('en-PK')}
+                      </div>
+                      <div
+                        className="absolute bg-blue-600/80 text-white rounded px-1"
+                        style={{ top: '20.5%', right: '8%', fontSize: '5px', fontWeight: 'bold' }}
+                      >
+                        نام خریدار
+                      </div>
+                      <div
+                        className="absolute bg-blue-400/60 text-white rounded px-1"
+                        style={{ top: '27%', left: '10%', fontSize: '4px' }}
+                      >
+                        ── items ──
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    className="bg-white shadow-sm border border-slate-200 transition-all duration-300 relative overflow-hidden"
+                    style={{ 
+                      width: printerType === 'thermal' ? '150px' : '220px',
+                      height: '280px',
+                      padding: '10px'
+                    }}
+                  >
+                    {/* Header Preview */}
                     <div 
-                      className="font-bold text-[10px]" 
-                      style={{ 
-                        color: printLayout === 'layout3' || printLayout === 'layout8' || printLayout === 'layout10' ? themeColor : '#333'
-                      }}
+                      className={`text-center pb-2 border-b-2 mb-2 ${
+                        printLayout === 'layout2' || printLayout === 'layout6' ? 'text-left border-b border-dashed' : 
+                        printLayout === 'layout3' || printLayout === 'layout7' ? 'bg-slate-100 rounded p-2 border-none' : 
+                        printLayout === 'layout4' || printLayout === 'layout8' ? 'border-b-4' : 
+                        printLayout === 'layout5' || printLayout === 'layout9' ? 'text-right border-b border-dotted' : 
+                        printLayout === 'layout10' ? 'border-b-0 shadow-sm mb-3' : ''
+                      }`}
+                      style={{ borderColor: themeColor }}
                     >
-                      {companyDetails.name || 'Company Name'}
+                      <div 
+                        className="font-bold text-[10px]" 
+                        style={{ 
+                          color: printLayout === 'layout3' || printLayout === 'layout8' || printLayout === 'layout10' ? themeColor : '#333'
+                        }}
+                      >
+                        {companyDetails.name || 'Company Name'}
+                      </div>
+                      <div className="text-[7px] text-gray-500">{companyDetails.number || '123-456-7890'}</div>
+                      <div className="text-[7px] text-gray-500">{companyDetails.address || 'Company Address Area'}</div>
                     </div>
-                    <div className="text-[7px] text-gray-500">{companyDetails.number || '123-456-7890'}</div>
-                    <div className="text-[7px] text-gray-500">{companyDetails.address || 'Company Address Area'}</div>
-                  </div>
-                  
-                  {/* Body Preview */}
-                  <div className="space-y-1.5 mb-2">
-                    <div className="h-2 w-3/4 rounded" style={{ backgroundColor: printLayout === 'layout4' || printLayout === 'layout9' ? themeColor : '#e5e7eb' }}></div>
-                    <div className="h-2 w-1/2 bg-gray-200 rounded"></div>
-                    <div className="h-2 w-full bg-gray-100 rounded"></div>
-                    <div className="h-2 w-full bg-gray-100 rounded"></div>
-                  </div>
-                  
-                  {/* Table Preview */}
-                  <div className="border border-gray-100 rounded overflow-hidden mt-3">
-                    <div className="h-3 flex items-center px-1" style={{ backgroundColor: themeColor, opacity: printLayout === 'layout5' || printLayout === 'layout10' ? 1 : 0.8 }}>
-                      <div className="h-1 w-1/3 bg-white/50 rounded"></div>
+                    
+                    {/* Body Preview */}
+                    <div className="space-y-1.5 mb-2">
+                      <div className="h-2 w-3/4 rounded" style={{ backgroundColor: printLayout === 'layout4' || printLayout === 'layout9' ? themeColor : '#e5e7eb' }}></div>
+                      <div className="h-2 w-1/2 bg-gray-200 rounded"></div>
+                      <div className="h-2 w-full bg-gray-100 rounded"></div>
+                      <div className="h-2 w-full bg-gray-100 rounded"></div>
                     </div>
-                    <div className="h-3 border-t border-gray-100 flex items-center px-1">
-                      <div className="h-1 w-1/4 bg-gray-200 rounded"></div>
+                    
+                    {/* Table Preview */}
+                    <div className="border border-gray-100 rounded overflow-hidden mt-3">
+                      <div className="h-3 flex items-center px-1" style={{ backgroundColor: themeColor, opacity: printLayout === 'layout5' || printLayout === 'layout10' ? 1 : 0.8 }}>
+                        <div className="h-1 w-1/3 bg-white/50 rounded"></div>
+                      </div>
+                      <div className="h-3 border-t border-gray-100 flex items-center px-1">
+                        <div className="h-1 w-1/4 bg-gray-200 rounded"></div>
+                      </div>
+                      <div className="h-3 border-t border-gray-100 flex items-center px-1">
+                        <div className="h-1 w-1/2 bg-gray-200 rounded"></div>
+                      </div>
                     </div>
-                    <div className="h-3 border-t border-gray-100 flex items-center px-1">
-                      <div className="h-1 w-1/2 bg-gray-200 rounded"></div>
+                    
+                    {/* Total Preview */}
+                    <div 
+                      className={`mt-4 flex justify-between items-center pt-2 ${
+                        printLayout === 'layout2' || printLayout === 'layout7' ? 'border-t-2 border-dashed' : 'border-t border-solid'
+                      }`}
+                      style={{ borderColor: themeColor }}
+                    >
+                      <div className="h-2 w-8 bg-gray-200 rounded"></div>
+                      <div className="h-3 w-12 rounded" style={{ backgroundColor: themeColor }}></div>
                     </div>
                   </div>
-                  
-                  {/* Total Preview */}
-                  <div 
-                    className={`mt-4 flex justify-between items-center pt-2 ${
-                      printLayout === 'layout2' || printLayout === 'layout7' ? 'border-t-2 border-dashed' : 'border-t border-solid'
-                    }`}
-                    style={{ borderColor: themeColor }}
-                  >
-                    <div className="h-2 w-8 bg-gray-200 rounded"></div>
-                    <div className="h-3 w-12 rounded" style={{ backgroundColor: themeColor }}></div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 

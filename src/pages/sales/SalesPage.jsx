@@ -345,7 +345,7 @@ export default function SalesPage() {
       companyEmail: comp?.email || '',
       billTo: tx.customer
         ? `${tx.customer.name} (${tx.customer.code})`
-        : 'Walk-in / Cash Customer',
+        : '-',
       invoiceNo: `INV-${tx.id.slice(0, 6).toUpperCase()}`,
       date: tx.date,
       items: [
@@ -446,7 +446,7 @@ export default function SalesPage() {
         date: formatDateDisplay(tx.date),
         type: typeLabel,
         mode: tx.is_credit ? 'Credit (ادھار)' : 'Cash (نقد)',
-        customer: tx.customer ? tx.customer.name : 'Walk-in / Cash',
+        customer: tx.customer ? tx.customer.name : '-',
         desc: tx.description || '-',
         amount: Number(tx.amount),
       });
@@ -809,8 +809,8 @@ export default function SalesPage() {
                             )}
                           </span>
                         ) : (
-                          <span className="text-slate-400 italic font-normal text-xs">
-                            Cash / Walk-in
+                          <span className="text-slate-400 font-medium text-xs">
+                            -
                           </span>
                         )}
                       </td>

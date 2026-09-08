@@ -19,6 +19,7 @@ export default function DashboardPage() {
   // States for KPIs
   const [reportData, setReportData] = useState(null)
   const [salesTrend, setSalesTrend] = useState([])
+  const [hasData, setHasData] = useState(true)
 
   const companyIds = useMemo(() => {
     if (!companies || companies.length === 0) return []
@@ -148,6 +149,13 @@ export default function DashboardPage() {
         previousNetBalance,
         netBalance
       })
+      // Show empty state if no transactions exist at all
+      setHasData(
+        transactions.length > 0 ||
+        fuel.length > 0 ||
+        expenses.length > 0 ||
+        fuelPurchases.length > 0
+      )
 
     } catch (err) {
       console.error('Dashboard fetch error:', err)
@@ -202,6 +210,14 @@ export default function DashboardPage() {
       {loading ? (
         <div className="w-full h-96 flex items-center justify-center bg-gray-50 rounded-xl">
            <span className="text-gray-400">Loading Dashboard...</span>
+        </div>
+      ) : !hasData ? (
+        <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl border border-dashed border-slate-200">
+          <svg className="h-16 w-16 text-slate-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+          </svg>
+          <h3 className="text-lg font-semibold text-slate-400">No Transactions Found</h3>
+          <p className="text-sm text-slate-400 mt-1">No sales, expenses, or fuel records for this period.</p>
         </div>
       ) : reportData ? (
         <>

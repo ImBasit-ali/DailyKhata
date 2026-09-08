@@ -74,6 +74,170 @@ export default function InvoicePreviewModal({
       return;
     }
 
+    // ── Layout 11: Gill Bricks Company form overlay ───────────────────────
+    if (printSettings.printLayout === 'layout11') {
+      // Build item rows for the 3-column Urdu table (تعداد مال | مال قسم | مال ریٹ)
+      const itemRowsHtml = items.map(item => `
+        <tr>
+          <td>${item.quantity != null && item.quantity !== '' ? formatNumber(item.quantity) : ''}</td>
+          <td>${item.name || ''}</td>
+          <td>${item.pricePerUnit ? formatCurrency(item.pricePerUnit) : (item.amount ? formatCurrency(item.amount) : '')}</td>
+        </tr>
+      `).join('');
+
+      const todayStr = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const printDate = date ? new Date(date).toLocaleDateString('en-PK', { day: '2-digit', month: '2-digit', year: 'numeric' }) : todayStr;
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Gill Bricks - ${billTo}</title>
+            <style>
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              body { margin: 0; padding: 0; background: #fff; }
+              .page-wrap {
+                position: relative;
+                width: 794px;
+                min-height: 1123px;
+                margin: 0 auto;
+              }
+              .bg-img {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                object-position: top;
+                z-index: 0;
+              }
+              .overlay {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 1;
+                font-family: Arial, sans-serif;
+              }
+              /* Date field */
+              .field-date {
+                position: absolute;
+                top: 20.5%;
+                left: 8%;
+                font-size: 13px;
+                font-weight: bold;
+                color: #1a1a6e;
+              }
+              /* Customer name field (نام خریدار) */
+              .field-customer {
+                position: absolute;
+                top: 20.5%;
+                right: 8%;
+                font-size: 13px;
+                font-weight: bold;
+                color: #1a1a6e;
+                text-align: right;
+                direction: rtl;
+              }
+              /* Items table overlay */
+              .items-table-wrap {
+                position: absolute;
+                top: 27%;
+                left: 4%;
+                width: 92%;
+              }
+              .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+                color: #1a1a6e;
+                direction: rtl;
+              }
+              .items-table td {
+                padding: 6px 10px;
+                text-align: center;
+                border: none;
+              }
+              /* Totals area */
+              .field-prev-qty {
+                position: absolute;
+                top: 46.5%;
+                right: 55%;
+                font-size: 12px;
+                font-weight: bold;
+                color: #1a1a6e;
+                direction: rtl;
+              }
+              .field-total-qty {
+                position: absolute;
+                top: 46.5%;
+                right: 8%;
+                font-size: 12px;
+                font-weight: bold;
+                color: #1a1a6e;
+                direction: rtl;
+              }
+              .field-prev-amount {
+                position: absolute;
+                top: 54%;
+                right: 55%;
+                font-size: 12px;
+                font-weight: bold;
+                color: #1a1a6e;
+                direction: rtl;
+              }
+              .field-total-amount {
+                position: absolute;
+                top: 54%;
+                right: 8%;
+                font-size: 12px;
+                font-weight: bold;
+                color: #1a1a6e;
+                direction: rtl;
+              }
+              @media print {
+                body { margin: 0; }
+                @page { size: A4 portrait; margin: 0; }
+                .page-wrap { width: 100%; min-height: 100vh; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="page-wrap">
+              <!-- Original Gill Bricks form image — NOT modified -->
+              <img class="bg-img" src="${window.location.origin}/gill_bricks_layout.jpg" alt="Gill Bricks Form" />
+
+              <!-- Data overlay -->
+              <div class="overlay">
+                <!-- Date -->
+                <div class="field-date">${printDate}</div>
+                <!-- Customer Name (right side, Urdu direction) -->
+                <div class="field-customer">${billTo !== 'Walk-in Customer' ? billTo : ''}</div>
+
+                <!-- Items (تعداد مال | مال قسم | مال ریٹ) -->
+                <div class="items-table-wrap">
+                  <table class="items-table">
+                    <tbody>
+                      ${itemRowsHtml}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Total amount -->
+                <div class="field-total-amount">${formatCurrency(totalAmount)}</div>
+              </div>
+            </div>
+            <script>
+              window.onload = function() { window.print(); window.close(); }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      return;
+    }
+    // ── End Layout 11 ──────────────────────────────────────────────────────
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>

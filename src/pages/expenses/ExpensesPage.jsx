@@ -62,6 +62,7 @@ export default function ExpensesPage() {
     company_id: '',
     date: todayISO(),
     category: 'Salaries',
+    customer_id: '',
     customer_code: '',
     name: '',
     amount: '',
@@ -73,6 +74,9 @@ export default function ExpensesPage() {
   const [isAddPartyOpen, setIsAddPartyOpen] = useState(false);
 
   const [deleteId, setDeleteId] = useState(null);
+  
+  // For multiple expenses at one time
+  const [batchList, setBatchList] = useState([]);
 
   const companyIds = useMemo(() => {
     if (!companies || companies.length === 0) return [];
@@ -93,7 +97,7 @@ export default function ExpensesPage() {
     try {
       let query = supabase
         .from('customers')
-        .select('code, name, company_id')
+        .select('id, code, name, company_id')
         .order('code');
 
       if (!isAllCompanies && activeCompany?.id) {
@@ -142,6 +146,7 @@ export default function ExpensesPage() {
 
   const handleOpenModal = (entry = null, isDuplicate = false) => {
     setEditingEntry(isDuplicate ? null : entry);
+    setBatchList([]);
     const targetCompanyId =
       entry?.company_id || (isAllCompanies ? companies[0]?.id : activeCompany?.id);
     const targetComp = companies.find((c) => c.id === targetCompanyId) || activeCompany;
@@ -153,6 +158,7 @@ export default function ExpensesPage() {
             company_id: targetCompanyId,
             date: isDuplicate ? todayISO() : entry.date,
             category: entry.category || 'General & Misc',
+            customer_id: isDuplicate ? '' : (entry.customer_id || ''),
             customer_code: entry.customer_code || defaultFirmCode,
             name: isDuplicate
               ? `${entry.name || ''} (Copy)`.trim()
@@ -163,6 +169,7 @@ export default function ExpensesPage() {
             company_id: targetCompanyId,
             date: todayISO(),
             category: 'Salaries',
+            customer_id: '',
             customer_code: defaultFirmCode,
             name: '',
             amount: '',
@@ -171,76 +178,146 @@ export default function ExpensesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleAddToBatch = () => {
     const numAmount = parseFloat(formData.amount || 0);
-
     if (!formData.company_id) {
       toast.error('Please select a company');
       return;
     }
-
     if (isNaN(numAmount) || numAmount <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
-
     if (!formData.name.trim()) {
-      toast.error('Expense description / name is required');
+      toast.error('Expense description is required');
       return;
     }
 
+    setBatchList([...batchList, { ...formData, id: Date.now() }]);
+    
+    setFormData({
+      ...formData,
+      name: '',
+      amount: ''
+    });
+    document.getElementById('expense_name_input')?.focus();
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
     try {
-      const selectedCategory = formData.category || 'General & Misc';
-      const dbStoredName = formatExpenseNameWithCategory(selectedCategory, formData.name);
-
-      const payload = {
-        company_id: formData.company_id,
-        date: formData.date,
-        category: selectedCategory,
-        customer_code: formData.customer_code
-          ? formData.customer_code.trim().toUpperCase()
-          : null,
-        name: dbStoredName,
-        amount: numAmount,
-      };
-
       if (editingEntry) {
+        const numAmount = parseFloat(formData.amount || 0);
+        if (isNaN(numAmount) || numAmount <= 0) {
+          toast.error('Please enter a valid amount');
+          return;
+        }
+        if (!formData.name.trim()) {
+          toast.error('Expense description is required');
+          return;
+        }
+        const selectedCategory = formData.category || 'General & Misc';
+        const dbStoredName = formatExpenseNameWithCategory(selectedCategory, formData.name);
+
+        const payload = {
+          company_id: formData.company_id,
+          date: formData.date,
+          category: selectedCategory,
+          customer_code: formData.customer_code ? formData.customer_code.trim().toUpperCase() : null,
+          name: dbStoredName,
+          amount: numAmount,
+        };
+
         saveExpenseCategory(editingEntry.id, selectedCategory);
-        let { error } = await supabase
-          .from('expenses')
-          .update(payload)
-          .eq('id', editingEntry.id);
+        let { error } = await supabase.from('expenses').update(payload).eq('id', editingEntry.id);
+        
         if (error && (error.message?.includes('category') || error.code === '42703')) {
           delete payload.category;
-          const retry = await supabase
-            .from('expenses')
-            .update(payload)
-            .eq('id', editingEntry.id);
+          const retry = await supabase.from('expenses').update(payload).eq('id', editingEntry.id);
           error = retry.error;
         }
         if (error) throw error;
         toast.success('Expense updated');
+        setIsModalOpen(false);
+        fetchExpenses();
       } else {
-        let { data: newExp, error } = await supabase.from('expenses').insert([payload]).select();
+        const currentNum = parseFloat(formData.amount || 0);
+        const hasCurrent = formData.name.trim() && currentNum > 0;
+        
+        const itemsToSave = [...batchList];
+        if (hasCurrent) {
+           itemsToSave.push(formData);
+        }
+
+        if (itemsToSave.length === 0) {
+           toast.error('Please add at least one expense');
+           return;
+        }
+
+        if (itemsToSave.some(item => !item.company_id)) {
+           toast.error('Please select a company for all expenses');
+           return;
+        }
+
+        const payloads = itemsToSave.map(item => {
+           const selectedCategory = item.category || 'General & Misc';
+           const dbStoredName = formatExpenseNameWithCategory(selectedCategory, item.name);
+           return {
+              company_id: item.company_id,
+              date: item.date,
+              category: selectedCategory,
+              customer_code: item.customer_code ? item.customer_code.trim().toUpperCase() : null,
+              name: dbStoredName,
+              amount: parseFloat(item.amount),
+           };
+        });
+
+        let { data: newExps, error } = await supabase.from('expenses').insert(payloads).select();
+        
         if (error && (error.message?.includes('category') || error.code === '42703')) {
-          delete payload.category;
-          const retry = await supabase.from('expenses').insert([payload]).select();
-          error = retry.error;
-          newExp = retry.data;
+           const payloadsNoCat = payloads.map(p => {
+              const p2 = { ...p };
+              delete p2.category;
+              return p2;
+           });
+           const retry = await supabase.from('expenses').insert(payloadsNoCat).select();
+           error = retry.error;
+           newExps = retry.data;
         }
+
         if (error) throw error;
-        const createdId = newExp?.[0]?.id;
-        if (createdId) {
-          saveExpenseCategory(createdId, selectedCategory);
+
+        if (newExps) {
+            newExps.forEach((exp, idx) => {
+                saveExpenseCategory(exp.id, payloads[idx].category);
+            });
         }
-        toast.success('Expense added');
+
+        // Insert ledger entries for expenses linked to a party
+        const ledgerEntries = itemsToSave
+          .filter(item => item.customer_id)
+          .map(item => ({
+            company_id: item.company_id,
+            customer_id: item.customer_id,
+            date: item.date,
+            detail: item.name?.trim() || `${item.category || 'Expense'}: Party Expense`,
+            credit_amount: parseFloat(item.amount),
+            cash_advance: 0,
+          }));
+
+        if (ledgerEntries.length > 0) {
+          await supabase.from('ledger_entries').insert(ledgerEntries);
+        }
+
+        toast.success(`Successfully added ${payloads.length} expense(s)`);
+        setIsModalOpen(false);
+        setBatchList([]);
+        fetchExpenses();
       }
-      setIsModalOpen(false);
-      fetchExpenses();
     } catch (err) {
-      console.error('Error saving expense:', err);
-      toast.error(err.message || 'Failed to save expense');
+      console.error('Error saving expenses:', err);
+      toast.error(err.message || 'Failed to save expenses');
     }
   };
 
@@ -703,7 +780,7 @@ export default function ExpensesPage() {
                   <th className="px-3.5 py-2">Date</th>
                   {isAllCompanies && <th className="px-3.5 py-2">Company Code (فرم کوڈ)</th>}
                   <th className="px-3.5 py-2">Category (زمرہ)</th>
-                  <th className="px-3.5 py-2">Firm Code (فرم کوڈ)</th>
+                  {!isAllCompanies && <th className="px-3.5 py-2">Firm Code (فرم کوڈ)</th>}
                   <th className="px-3.5 py-2">Description</th>
                   <th className="px-3.5 py-2 text-right">Amount (Rs)</th>
                   <th className="px-3.5 py-2 text-right">Actions</th>
@@ -742,11 +819,13 @@ export default function ExpensesPage() {
                         </span>
                       </td>
 
-                      <td className="px-3.5 py-2 text-xs whitespace-nowrap">
-                        <span className="font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-xs font-bold">
-                          {firmCode}
-                        </span>
-                      </td>
+                      {!isAllCompanies && (
+                        <td className="px-3.5 py-2 text-xs whitespace-nowrap">
+                          <span className="font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-xs font-bold">
+                            {firmCode}
+                          </span>
+                        </td>
+                      )}
 
                       <td className="px-3.5 py-2 text-xs text-slate-800 font-medium max-w-sm truncate">
                         {expense.name}
@@ -932,6 +1011,7 @@ export default function ExpensesPage() {
               Description / Expense Name
             </label>
             <input
+              id="expense_name_input"
               type="text"
               placeholder="e.g. Staff Salary Parvez, Electricity Bill, Generator..."
               value={formData.name}
@@ -939,7 +1019,7 @@ export default function ExpensesPage() {
                 setFormData({ ...formData, name: e.target.value })
               }
               className="w-full border-slate-300 rounded-lg p-2 border text-sm"
-              required
+              required={!batchList.length}
             />
           </div>
 
@@ -957,9 +1037,54 @@ export default function ExpensesPage() {
                 setFormData({ ...formData, amount: e.target.value })
               }
               className="w-full border-slate-300 rounded-lg p-2 border text-sm font-bold text-slate-800"
-              required
+              required={!batchList.length}
             />
           </div>
+
+          {!editingEntry && (
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                onClick={handleAddToBatch}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 transition"
+              >
+                + Add to List (مزید شامل کریں)
+              </button>
+            </div>
+          )}
+
+          {!editingEntry && batchList.length > 0 && (
+             <div className="mt-4 border border-slate-200 rounded-lg overflow-hidden">
+                <div className="bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 border-b border-slate-200">
+                   Expenses List ({batchList.length})
+                </div>
+                <div className="max-h-40 overflow-y-auto">
+                   <table className="w-full text-left text-xs">
+                      <tbody className="divide-y divide-slate-100">
+                         {batchList.map((item, idx) => (
+                            <tr key={item.id} className="hover:bg-slate-50">
+                               <td className="px-3 py-2">{item.category}</td>
+                               <td className="px-3 py-2 max-w-[150px] truncate">{item.name}</td>
+                               <td className="px-3 py-2 font-bold text-right text-slate-700">{formatCurrency(item.amount)}</td>
+                               <td className="px-3 py-2 text-right">
+                                  <button
+                                     type="button"
+                                     onClick={() => setBatchList(batchList.filter((_, i) => i !== idx))}
+                                     className="text-rose-500 hover:text-rose-700 font-bold"
+                                  >
+                                     ✕
+                                  </button>
+                               </td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+                <div className="bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 text-right border-t border-slate-200">
+                   Total: {formatCurrency(batchList.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0))}
+                </div>
+             </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
             <button
@@ -973,7 +1098,7 @@ export default function ExpensesPage() {
               type="submit"
               className="bg-indigo-600 text-white px-5 py-2 text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm"
             >
-              {editingEntry ? 'Save Changes' : 'Save Expense'}
+              {editingEntry ? 'Save Changes' : `Save ${batchList.length > 0 ? 'All ' : ''}Expenses`}
             </button>
           </div>
         </form>
