@@ -5,6 +5,7 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import LoginPage from '@/pages/auth/LoginPage'
 import AuthCallback from '@/pages/auth/AuthCallback'
+import SetPasswordPage from '@/pages/auth/SetPasswordPage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import CompaniesPage from '@/pages/companies/CompaniesPage'
 import CustomersPage from '@/pages/customers/CustomersPage'
@@ -28,6 +29,7 @@ export default function App() {
             {/* Public routes */}
             <Route path="/auth" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/set-password" element={<SetPasswordPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>

@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      
+
       if (_event === 'SIGNED_IN' && session?.user) {
         syncSupabaseToLocal(session.user)
       } else if (_event === 'SIGNED_OUT') {
@@ -117,6 +117,22 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
+  /**
+   * Set / update the DailyKhata password for the currently authenticated user.
+   * This uses Supabase Auth's updateUser so the password is managed entirely
+   * by Supabase — it is NEVER stored in localStorage, a database table, or
+   * any application state beyond the temporary form while the user types it.
+   *
+   * After this call succeeds, the user can sign in on any device using:
+   *   supabase.auth.signInWithPassword({ email, password })
+   */
+  const setPassword = async (newPassword) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+    return { data, error }
+  }
+
   const value = {
     user,
     session,
@@ -124,6 +140,7 @@ export function AuthProvider({ children }) {
     signUp,
     signIn,
     signInWithGoogle,
+    setPassword,
     signOut,
   }
 
