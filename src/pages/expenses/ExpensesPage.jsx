@@ -19,7 +19,7 @@ import {
   parseExpenseRecords,
 } from '@/utils/expenseCategoryManager';
 import toast from 'react-hot-toast';
-import { FunnelIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -108,7 +108,12 @@ export default function ExpensesPage() {
   const [isAddPartyOpen, setIsAddPartyOpen] = useState(false);
 
   const [deleteId, setDeleteId] = useState(null);
-  
+
+  // Multi-select delete state
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   // For multiple expenses at one time
   const [batchList, setBatchList] = useState([]);
 
@@ -379,6 +384,37 @@ export default function ExpensesPage() {
       toast.error('Failed to delete expense');
     }
   };
+
+  // Bulk delete — moves every selected expense to trash then deletes
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const toDelete = expenses.filter((e) => selectedIds.has(e.id));
+      for (const item of toDelete) {
+        moveToTrash({
+          table: 'expenses',
+          itemType: 'Expense',
+          title: item.name || 'Expense',
+          details: `Date: ${formatDateDisplay(item.date)} - Category: ${item.category || 'General'}`,
+          amount: Number(item.amount || 0),
+          company_id: item.company_id,
+          originalData: item,
+        });
+        await deleteRecordEntirely(item.id, 'expenses');
+      }
+      toast.success(`${toDelete.length} expense(s) moved to Recycle Bin`);
+      setSelectedIds(new Set());
+      setShowBulkConfirm(false);
+      fetchExpenses();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete some expenses');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
 
   // Preview Invoice Handler (Reference Image 2)
   const handleOpenPreview = (expense) => {
@@ -797,6 +833,32 @@ export default function ExpensesPage() {
         </div>
       ) : (
         <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200">
+          {/* Bulk-action bar — only visible when rows are selected */}
+          {selectedIds.size > 0 && (
+            <div className="px-4 py-2.5 bg-rose-50 border-b border-rose-200 flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-rose-700">
+                {selectedIds.size} expense{selectedIds.size > 1 ? 's' : ''} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds(new Set())}
+                  className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded transition"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkConfirm(true)}
+                  className="text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+                >
+                  <TrashIcon className="h-3.5 w-3.5" />
+                  Delete Selected ({selectedIds.size})
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
             <span className="font-semibold text-slate-700 text-sm">
               Expenses List ({filteredExpenses.length})
@@ -810,7 +872,23 @@ export default function ExpensesPage() {
             <table className="w-full text-left divide-y divide-slate-200">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-600 tracking-wider">
                 <tr>
-                  <th className="px-3.5 py-2 w-12">S.N.</th>
+                  {/* Select-all checkbox */}
+                  <th className="px-3.5 py-2 w-8">
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                      checked={filteredExpenses.length > 0 && filteredExpenses.every((e) => selectedIds.has(e.id))}
+                      onChange={(ev) => {
+                        if (ev.target.checked) {
+                          setSelectedIds(new Set(filteredExpenses.map((e) => e.id)));
+                        } else {
+                          setSelectedIds(new Set());
+                        }
+                      }}
+                      title="Select all"
+                    />
+                  </th>
+                  <th className="px-3.5 py-2 w-10">S.N.</th>
                   <th className="px-3.5 py-2">Date</th>
                   {isAllCompanies && <th className="px-3.5 py-2">Company Code (فرم کوڈ)</th>}
                   <th className="px-3.5 py-2">Category (زمرہ)</th>
@@ -826,7 +904,24 @@ export default function ExpensesPage() {
                   const firmCode = expense.customer_code || getCompanyCode(comp?.name) || '-';
 
                   return (
-                    <tr key={expense.id} className="hover:bg-slate-50">
+                    <tr
+                      key={expense.id}
+                      className={`hover:bg-slate-50 transition-colors ${selectedIds.has(expense.id) ? 'bg-rose-50' : ''}`}
+                    >
+                      {/* Per-row checkbox */}
+                      <td className="px-3.5 py-2">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                          checked={selectedIds.has(expense.id)}
+                          onChange={(ev) => {
+                            const next = new Set(selectedIds);
+                            if (ev.target.checked) next.add(expense.id);
+                            else next.delete(expense.id);
+                            setSelectedIds(next);
+                          }}
+                        />
+                      </td>
                       <td className="px-3.5 py-2 tabular-nums text-xs text-slate-500 font-medium">
                         {idx + 1}
                       </td>
@@ -1157,6 +1252,16 @@ export default function ExpensesPage() {
         onConfirm={handleDelete}
         title="Delete Expense"
         message="Are you sure you want to delete this expense record?"
+      />
+
+      {/* Bulk delete confirmation */}
+      <ConfirmDialog
+        isOpen={showBulkConfirm}
+        onClose={() => setShowBulkConfirm(false)}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${selectedIds.size} Expense${selectedIds.size > 1 ? 's' : ''}?`}
+        message={`Are you sure you want to move ${selectedIds.size} selected expense${selectedIds.size > 1 ? 's' : ''} to the Recycle Bin? You can restore them later.`}
+        isLoading={bulkDeleting}
       />
 
       {/* Invoice Preview Modal (Reference Image 2) */}
