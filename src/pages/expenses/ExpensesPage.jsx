@@ -38,6 +38,40 @@ const EXPENSE_CATEGORIES = [
   'Other',
 ];
 
+/**
+ * Keyword → category mapping for auto-detection.
+ * Each entry is [category, keywords[]].
+ * Words are matched case-insensitively anywhere in the description.
+ * Order matters — first match wins.
+ */
+const CATEGORY_KEYWORDS = [
+  ['Salaries',                         ['salary', 'salari', 'تنخواہ', 'wage', 'staff pay', 'worker pay', 'payroll', 'monthly pay', 'labor', 'labour', 'مزدوری', 'allowance', 'bonus', 'overtime', 'کارکن']],
+  ['Utilities (Electricity, Gas, Water)', ['electric', 'bijli', 'بجلی', 'electricity', 'wapda', 'gas bill', 'sui gas', 'water bill', 'water supply', 'پانی', 'utility', 'utilities', 'meter', 'light bill', 'گیس', 'fuel bill']],
+  ['Rent',                              ['rent', 'kiraya', 'کرایہ', 'lease', 'shop rent', 'office rent', 'godown rent', 'warehouse rent', 'monthly rent']],
+  ['Repairs & Maintenance',             ['repair', 'maintenance', 'مرمت', 'service', 'fix', 'broken', 'پلمبر', 'plumb', 'electric repair', 'machine repair', 'vehicle repair', 'pump repair', 'overhaul', 'spare', 'parts', 'سرویس']],
+  ['Fuel & Generator',                  ['fuel', 'petrol', 'diesel', 'generator', 'genset', 'پیٹرول', 'ڈیزل', 'جنریٹر', 'cng', 'gas fill', 'oil', 'engine oil', 'lubricant']],
+  ['Tea & Refreshment',                 ['tea', 'chai', 'چائے', 'refreshment', 'snack', 'lunch', 'food', 'breakfast', 'drink', 'coffee', 'water bottle', 'meal', 'canteen', 'کھانا', 'ناشتہ', 'بسکٹ', 'biscuit']],
+  ['Office Supplies',                   ['stationery', 'paper', 'pen', 'printer', 'ink', 'toner', 'office', 'دفتر', 'photocopy', 'copies', 'envelope', 'stamp', 'register', 'notebook', 'file', 'folder', 'کاپی', 'قلم']],
+  ['Taxes & Fees',                      ['tax', 'fee', 'fine', 'ٹیکس', 'ٹیکس فیس', 'challan', 'گورنمنٹ', 'government', 'license', 'permit', 'duty', 'customs', 'vat', 'gst', 'token', 'registration', 'نادرا', 'کسٹم']],
+  ['General & Misc',                    ['misc', 'general', 'other', 'miscellaneous', 'various', 'عام', 'متفرق']],
+];
+
+/**
+ * Returns the best-matching EXPENSE_CATEGORIES value for a given description string,
+ * or null if no keyword matched.
+ */
+function inferCategoryFromDescription(description) {
+  if (!description || !description.trim()) return null;
+  const lower = description.toLowerCase();
+  for (const [category, keywords] of CATEGORY_KEYWORDS) {
+    if (keywords.some((kw) => lower.includes(kw.toLowerCase()))) {
+      return category;
+    }
+  }
+  return null;
+}
+
+
 export default function ExpensesPage() {
   const { activeCompany, companies, isAllCompanies } = useCompany();
   const [expenses, setExpenses] = useState([]);
@@ -913,9 +947,16 @@ export default function ExpensesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Expense Category (زمرہ)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-slate-700">
+                Expense Category (زمرہ)
+              </label>
+              {inferCategoryFromDescription(formData.name) === formData.category && formData.name.trim() && (
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  ✦ Auto-detected
+                </span>
+              )}
+            </div>
             <select
               value={formData.category}
               onChange={(e) =>
@@ -1015,9 +1056,15 @@ export default function ExpensesPage() {
               type="text"
               placeholder="e.g. Staff Salary Parvez, Electricity Bill, Generator..."
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={(e) => {
+                const newName = e.target.value;
+                const inferred = inferCategoryFromDescription(newName);
+                setFormData({
+                  ...formData,
+                  name: newName,
+                  ...(inferred ? { category: inferred } : {}),
+                });
+              }}
               className="w-full border-slate-300 rounded-lg p-2 border text-sm"
               required={!batchList.length}
             />
