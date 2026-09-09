@@ -385,31 +385,76 @@ export default function ExpensesPage() {
     }
   };
 
-  // Bulk delete — moves every selected expense to trash then deletes
+  // Bulk delete — batch implementation:
+  // 1. Write all items to trash localStorage in one pass
+  // 2. Write all deleted IDs to DELETED_IDS_KEY in one pass
+  // 3. Delete all from Supabase with a single .in() query
+  // 4. Dispatch events only once at the end
+  // (Calling the per-item utilities in a loop fires events mid-loop causing re-renders/races)
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
     setBulkDeleting(true);
     try {
       const toDelete = expenses.filter((e) => selectedIds.has(e.id));
-      for (const item of toDelete) {
-        moveToTrash({
-          table: 'expenses',
-          itemType: 'Expense',
-          title: item.name || 'Expense',
-          details: `Date: ${formatDateDisplay(item.date)} - Category: ${item.category || 'General'}`,
-          amount: Number(item.amount || 0),
-          company_id: item.company_id,
-          originalData: item,
-        });
-        await deleteRecordEntirely(item.id, 'expenses');
+      if (toDelete.length === 0) return;
+
+      const ids = toDelete.map((e) => e.id);
+      const now = new Date().toISOString();
+
+      // ── 1. Write all to trash (trashManager localStorage) in one pass ──
+      const TRASH_KEY = 'dailykhata_trash_records';
+      let trashBin = [];
+      try {
+        const raw = localStorage.getItem(TRASH_KEY);
+        trashBin = raw ? JSON.parse(raw) : [];
+      } catch { trashBin = []; }
+
+      const newTrashEntries = toDelete.map((item) => ({
+        trashId: 'trash_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        deletedAt: now,
+        table: 'expenses',
+        itemType: 'Expense',
+        title: item.name || 'Expense',
+        details: `Date: ${formatDateDisplay(item.date)} - Category: ${item.category || 'General'}`,
+        amount: Number(item.amount || 0),
+        company_id: item.company_id,
+        originalData: item,
+      }));
+      localStorage.setItem(TRASH_KEY, JSON.stringify([...newTrashEntries, ...trashBin]));
+
+      // ── 2. Write all IDs to deleted-IDs list in one pass ──
+      const DELETED_IDS_KEY = 'dailykhata_permanently_deleted_ids';
+      let deletedIds = [];
+      try {
+        const raw = localStorage.getItem(DELETED_IDS_KEY);
+        deletedIds = raw ? JSON.parse(raw) : [];
+      } catch { deletedIds = []; }
+      const merged = Array.from(new Set([...deletedIds, ...ids]));
+      localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(merged));
+
+      // ── 3. Delete all from Supabase in a single query ──
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .in('id', ids);
+
+      if (error) {
+        console.error('Bulk delete Supabase error:', error);
+        toast.error('Failed to delete from database: ' + error.message);
+        return;
       }
-      toast.success(`${toDelete.length} expense(s) moved to Recycle Bin`);
+
+      // ── 4. Dispatch events once ──
+      window.dispatchEvent(new CustomEvent('dailykhata_trash_updated'));
+      window.dispatchEvent(new CustomEvent('dailykhata_data_changed'));
+
+      toast.success(`${toDelete.length} expense${toDelete.length > 1 ? 's' : ''} moved to Recycle Bin`);
       setSelectedIds(new Set());
       setShowBulkConfirm(false);
       fetchExpenses();
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to delete some expenses');
+      console.error('Bulk delete error:', err);
+      toast.error('Failed to delete expenses');
     } finally {
       setBulkDeleting(false);
     }
